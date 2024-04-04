@@ -1,0 +1,9 @@
+.idea/
+target/
+.direnv/
+.devenv*
+.envrc
+
+# pre-commit
+.pre-commit-config.yaml
+

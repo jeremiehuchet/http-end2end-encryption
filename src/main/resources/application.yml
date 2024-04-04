@@ -1,0 +1,6 @@
+http.secure-transport.private-key: |
+  -----BEGIN PRIVATE KEY-----
+  MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgnztYGDK+0ADsSCik
+  FuY9xzvLBLZmIUNaLMDpcNuH//GhRANCAASBz44LjgZIDhgpbkkXl8RvOM+FMKsz
+  adliwCz76YsdluyJ27XC7Dn2Lq6o/poiTrQifVbxck3SxAF4ZsiZ2LC4
+  -----END PRIVATE KEY-----
