@@ -8,4 +8,10 @@
   languages.kotlin.enable = true;
   languages.java.enable = true;
   languages.java.maven.enable = true;
+
+  pre-commit.hooks.prettier.enable = true;
+
+  enterTest = ''
+    mvn test
+  '';
 }
