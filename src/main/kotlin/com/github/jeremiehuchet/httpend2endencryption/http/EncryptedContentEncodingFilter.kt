@@ -1,5 +1,6 @@
 package com.github.jeremiehuchet.httpend2endencryption.http
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.servlet.http.HttpFilter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ReadListener
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.http.HttpServletResponseWrapper
+import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered.LOWEST_PRECEDENCE
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpHeaders.CONTENT_ENCODING
@@ -26,13 +28,14 @@ import javax.crypto.CipherOutputStream
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import javax.security.auth.DestroyFailedException
 
 private const val AES_128_GCM = "aes128gcm"
 
 private const val ALGORITHM_EC = "EC"
-private const val AES_GCM_CIPHER_NO_PADDING = "AES/GCM/NoPadding"
-private const val AES_GCM_IV_LENGTH = 12
-private const val AES_GCM_TAG_LENGTH_IN_BITS = 128
+internal const val AES_GCM_CIPHER_NO_PADDING = "AES/GCM/NoPadding"
+internal const val AES_GCM_IV_LENGTH = 12
+internal const val AES_GCM_TAG_LENGTH_IN_BITS = 128
 
 /**
  * A servlet filter implementing request / response encryption.
@@ -40,13 +43,13 @@ private const val AES_GCM_TAG_LENGTH_IN_BITS = 128
  * Partially inspired by RFC 8188, it handles requests having request header <code>Content-Encoding: aes128gcm</code>.
  * But it doesn't structure the request body as specified in RFC 8188 draft, instead:
  *
- * <ul>
- * <li>the request body's first line contains the client's public key
- * <li>the following request body contains the payload encrypted with the server public key
- * <li>the response is encrypted with the public key transmitted on the request body first line
- * </ul>
+ * - the request header `Content-Encoding` must contain the client's public key
+ * - the request body contains the payload encrypted with the server public key
+ * - the response is encrypted with the public key transmitted in the `Content-Encoding` header
  */
 class EncryptedContentEncodingFilter(properties: HttpEncryptedProperties) : HttpFilter() {
+
+    val logger = KotlinLogging.logger {}
 
     private val serverPrivateKey = KeyFactory.getInstance(ALGORITHM_EC)
         .generatePrivate(properties.getPrivateKeySpec())
@@ -75,7 +78,11 @@ class EncryptedContentEncodingFilter(properties: HttpEncryptedProperties) : Http
                 }
             } finally {
                 // 5. ensure shared is destroyed
-                sharedSecret.destroy()
+                try {
+                    sharedSecret.destroy()
+                } catch (e: DestroyFailedException) {
+                    logger.warn { "Unable to destroy shared secret 😱. It seems ${sharedSecret::class} doesn't implement javax.security.auth.Destroyable" }
+                }
             }
         } else {
             // 415 Unsupported Media Type
